@@ -64,15 +64,17 @@ Now that our environemnt is ready and the online fork is created, let's setup th
    git clone <URL>
    ```
 
-3. **Checkout branch** - Instead of working off the default `master` branch, lets work ontop of the branch we created in the Online Setup above. You can likely change branches within your favorite code editor, or you can do this through the terminal. In the terminal make sure you `cd` into your project directory before creating the branch:  
+3. **Change to the cloned directory in the terminal** - In the terminal make sure you `cd` into the directory which was created when you cloned the project. You must be in your project directory to perforn any `git` commands.
+
+4. **Checkout branch** - Instead of working off the default `master` branch, lets work ontop of the branch we created in the Online Setup above. You can likely change branches within your favorite code editor, or you can do this through the terminal.
     
     ```bash
     git checkout <NAME_OF_BRANCH>
     ```
 
-3. **Open Editor** - Using your favorite code editor, open the newly created `gitlab-giphy-project` directory.
-4. **Update `giphy.config.json`** - Using the code editor, open the `giphy.config.json` and replace the empty string for `"apiToken": ""` with the Giphy API token you created in the Online Setup above.
-5. **Commit** - Now that we've made a change, we should tell `git` to remember our change. To do this, we need to create a _commit_. Many editors provide ways to do this through the UI, but you can also do this through the terminal with:  
+5. **Open Editor** - Using your favorite code editor, open the newly created `gitlab-giphy-project` directory.
+6. **Update `giphy.config.json`** - Using the code editor, open the `giphy.config.json` and replace the empty string for `"apiToken": ""` with the Giphy API token you created in the Online Setup above.
+7. **Commit** - Now that we've made a change, we should tell `git` to remember our change. To do this, we need to create a _commit_. Many editors provide ways to do this through the UI, but you can also do this through the terminal with:  
    
     ```bash
     # This will tell git we want to "STAGE" this change for commit
@@ -82,7 +84,7 @@ Now that our environemnt is ready and the online fork is created, let's setup th
     git commit -m "Add giphy api key"
     ```
 
-6. **Push** - `git` now knows about our commit, but only on our local repository. We want these changes to be copied to our online GitLab repository. We use `git push` to do this:  
+8. **Push** - `git` now knows about our commit, but only on our local repository. We want these changes to be copied to our online GitLab repository. We use `git push` to do this:  
    
    ```bash
    git push
