@@ -124,15 +124,16 @@ export default {
     displayModal() {
       this.modalVisable = true;
     },
-    closeModal() {
+    /*closeModal() {
       this.modalVisable = false;
-    },
+    },*/
     fetchData() {
       const url = new URL(apiUrl);
       const params = new URLSearchParams( {q:'programmer', api_key: apiKey} );
-
-      url.search = params.toString();
       
+      this.modalVisable = true;
+      url.search = params.toString();
+    
       console.log("This next line");
       console.log(url);
     },
@@ -240,7 +241,7 @@ export default {
               class="js-suggestion-btn"
               @click="handleSuggestDismissed"
             />
-          <gl-modal title="Modal Title" modal-id="giphy-modal">
+          <gl-modal title="Modal Title" modal-id="giphy-modal" @click="fetchData">
              {{ searchGifs() }}
           </gl-modal>
             <gl-popover
@@ -314,9 +315,12 @@ export default {
             tag=""
             :button-title="__('Find and insert GIF')"
             icon="doc-image"
-            vl-gl-modal="giphy-modal"
-            change v-model=(true)
+            vl-gl-modal="'giphy-modal'"
            />
+           <gl-button v-gl-modal="'giphy-modal'">
+             {{ fetchData() }}
+             {{ searchGifs() }}
+            </gl-button>
           <toolbar-button
             class="js-zen-enter"
             :prepend="true"

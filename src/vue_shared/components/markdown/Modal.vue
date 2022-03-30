@@ -29,7 +29,7 @@ export default {
         },
         fetchData () {
             const url = new URL(apiUrl);
-            const params = new URLSearchParams( {q : 'programmer', api_key: apiKey});
+            const params = new URLSearchParams( {q: 'programmer', api_key: apiKey});
 
             url.search = parms.toString();
             console.log("this next line");
@@ -49,7 +49,9 @@ export default {
 <template>
     <div>
         <gl-modal title="Modal Title" modal-id="modal">
-         {{ searchGifs }}
+         {{ searchGifs() }}
+        <gl-button v-gl-modal="'modal'">
+            
         </gl-button>
     </div>
 </template>
