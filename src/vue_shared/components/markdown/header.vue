@@ -1,11 +1,12 @@
 <script>
-import { GlPopover, GlButton, GlTooltipDirective, GlTabs, GlTab } from '@gitlab/ui';
+import { GlPopover, GlButton, GlTooltipDirective, GlTabs, GlTab, GlModal, GlModalDirective } from '@gitlab/ui';
 import $ from 'jquery';
 import { keysFor, BOLD_TEXT, ITALIC_TEXT, LINK_TEXT } from '~/behaviors/shortcuts/keybindings';
 import { getSelectedFragment } from '~/lib/utils/common_utils';
 import { s__, __ } from '~/locale';
 import { CopyAsGFM } from '../../../behaviors/markdown/copy_as_gfm';
 import ToolbarButton from './toolbar_button.vue';
+import { apiUrl, apiToken as apiKey } from "../../../../giphy.config.json";
 
 export default {
   components: {
@@ -14,9 +15,11 @@ export default {
     GlButton,
     GlTabs,
     GlTab,
+    GlModal,
   },
   directives: {
     GlTooltip: GlTooltipDirective,
+    GlModal: GlModalDirective,
   },
   props: {
     previewMarkdown: {
@@ -48,6 +51,7 @@ export default {
     return {
       tag: '> ',
       suggestPopoverVisible: false,
+      modalVisable: false,
     };
   },
   computed: {
@@ -86,7 +90,7 @@ export default {
   mounted() {
     $(document).on('markdown-preview:show.vue', this.previewMarkdownTab);
     $(document).on('markdown-preview:hide.vue', this.writeMarkdownTab);
-
+    this.searchGifs();
     this.updateSuggestPopoverVisibility();
   },
   beforeDestroy() {
@@ -99,13 +103,39 @@ export default {
 
       this.suggestPopoverVisible = this.showSuggestPopover && this.canSuggest;
     },
+    async searchGifs() {
+      const url = new URL(`${apiUrl}gifs/trending`);
+      const params = new URLSearchParams( {q: 'programmer', api_key: apiKey });
+      url.search = params.toString();
+      console.log('here');
+      console.log(url);
+      
+      const response = await window.fetch(url);
+      //const asJSON = await respons.json();
+
+      //console.log(asJSON);
+    },
     isValid(form) {
       return (
         !form ||
         (form.find('.js-vue-markdown-field').length && $(this.$el).closest('form')[0] === form[0])
       );
     },
+    displayModal() {
+      this.modalVisable = true;
+    },
+    closeModal() {
+      this.modalVisable = false;
+    },
+    fetchData() {
+      const url = new URL(apiUrl);
+      const params = new URLSearchParams( {q:'programmer', api_key: apiKey} );
 
+      url.search = params.toString();
+      
+      console.log("This next line");
+      console.log(url);
+    },
     previewMarkdownTab(event, form) {
       if (event.target.blur) event.target.blur();
       if (!this.isValid(form)) return;
@@ -140,6 +170,7 @@ export default {
         })
         .catch(() => {});
     },
+    
   },
   shortcuts: {
     bold: keysFor(BOLD_TEXT),
@@ -170,7 +201,7 @@ export default {
         data-testid="preview-tab"
         @click="previewMarkdownTab($event)"
       />
-
+      
       <template v-if="!previewMarkdown" #tabs-end>
         <div class="md-header-toolbar gl-ml-auto gl-pb-3 gl-justify-content-center">
           <toolbar-button
@@ -209,6 +240,9 @@ export default {
               class="js-suggestion-btn"
               @click="handleSuggestDismissed"
             />
+          <gl-modal title="Modal Title" modal-id="giphy-modal">
+             {{ searchGifs() }}
+          </gl-modal>
             <gl-popover
               v-if="suggestPopoverVisible"
               :target="$refs.suggestButton.$el"
@@ -275,6 +309,14 @@ export default {
             :button-title="__('Add a table')"
             icon="table"
           />
+          <toolbar-button
+            :prepend="true"
+            tag=""
+            :button-title="__('Find and insert GIF')"
+            icon="doc-image"
+            vl-gl-modal="giphy-modal"
+            change v-model=(true)
+           />
           <toolbar-button
             class="js-zen-enter"
             :prepend="true"

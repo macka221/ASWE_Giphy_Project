@@ -1,5 +1,5 @@
 <script>
-import { GlTooltipDirective, GlButton } from '@gitlab/ui';
+import { GlTooltipDirective, GlButton, GlModal, GlModalDirective } from '@gitlab/ui';
 
 export default {
   components: {
@@ -47,7 +47,6 @@ export default {
       required: false,
       default: 0,
     },
-
     /**
      * A string (or an array of strings) of
      * [mousetrap](https://craig.is/killing/mice) keyboard shortcuts
