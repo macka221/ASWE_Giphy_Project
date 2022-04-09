@@ -8,6 +8,8 @@ import { CopyAsGFM } from '../../../behaviors/markdown/copy_as_gfm';
 import ToolbarButton from './toolbar_button.vue';
 import { apiUrl, apiToken as apiKey } from "../../../../giphy.config.json";
 
+const GIF_LIMIT = 25;
+
 export default {
   components: {
     ToolbarButton,
@@ -52,6 +54,9 @@ export default {
       tag: '> ',
       suggestPopoverVisible: false,
       modalVisable: false,
+      offset: 25,
+      gifs: [],
+      //url: "",
     };
   },
   computed: {
@@ -109,11 +114,10 @@ export default {
       url.search = params.toString();
       console.log('here');
       console.log(url);
-      
-      const response = await window.fetch(url);
-      //const asJSON = await respons.json();
-
-      //console.log(asJSON);
+      // this.url = url;
+      /*const response = await window.fetch(url);
+      const asJSON = await respons.json();
+      console.log(asJSON); */
     },
     isValid(form) {
       return (
@@ -123,17 +127,33 @@ export default {
     },
     displayModal() {
       this.modalVisable = true;
-    },
+    }, 
     /*closeModal() {
       this.modalVisable = false;
     },*/
     fetchData() {
       const url = new URL(apiUrl);
-      const params = new URLSearchParams( {q:'programmer', api_key: apiKey} );
+      const params = new URLSearchParams( {
+                          q:'programmer', 
+                          api_key: apiKey, 
+                          offset: this.offset,
+                          limit: GIF_LIMIT,
+                          } );
+      var currentCapSize = 25;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(content => {
+          for (const item of content.data) {
+              this.gifs.push(item);
+            }
+
+            console.log(this.gifs);
+        })
       
       this.modalVisable = true;
       url.search = params.toString();
-    
+
       console.log("This next line");
       console.log(url);
     },
@@ -241,9 +261,6 @@ export default {
               class="js-suggestion-btn"
               @click="handleSuggestDismissed"
             />
-          <gl-modal title="Modal Title" modal-id="giphy-modal" @click="fetchData">
-             {{ searchGifs() }}
-          </gl-modal>
             <gl-popover
               v-if="suggestPopoverVisible"
               :target="$refs.suggestButton.$el"
@@ -310,17 +327,38 @@ export default {
             :button-title="__('Add a table')"
             icon="table"
           />
+          <gl-modal title="Find and Insert GIF" 
+            modal-id="giphy-modal" 
+            v-model="modalVisable"
+            @click="fetchData()"
+            >
+              <template #items>
+                <div 
+                style="display: flex; flex-wrap: wrap"
+                >
+                  <div 
+                  v-for="(gif) in gifs" 
+                  :key="gif.id" 
+                  class="gl-giphy-item"
+                  >
+                    <img 
+                    :src="gif.images.downsized_medium.url" 
+                    :alt="gif.title" 
+                    />
+                  </div>
+                </div>
+              </template>
+              {{ gifs }}
+
+          </gl-modal>
           <toolbar-button
             :prepend="true"
             tag=""
             :button-title="__('Find and insert GIF')"
             icon="doc-image"
-            vl-gl-modal="'giphy-modal'"
+            v-model="modalVisable"
+            @click="displayModal()"
            />
-           <gl-button v-gl-modal="'giphy-modal'">
-             {{ fetchData() }}
-             {{ searchGifs() }}
-            </gl-button>
           <toolbar-button
             class="js-zen-enter"
             :prepend="true"
@@ -332,3 +370,24 @@ export default {
     </gl-tabs>
   </div>
 </template>
+<style>
+  .gl-giphy-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14rem;
+    height: 14rem;
+    padding: 0.5rem;
+    border: 1px solid transparent;
+    curson: pointer;
+  }
+
+  .gl-giphy-item:hover {
+    border-color: grey;
+  }
+  
+  .gl-giphy-item img {
+    max-width: 100%;
+    max-height: 100%;
+  }
+</style>
