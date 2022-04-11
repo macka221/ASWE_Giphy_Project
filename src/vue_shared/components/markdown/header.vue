@@ -56,7 +56,7 @@ export default {
       modalVisable: false,
       offset: 25,
       gifs: [],
-      //url: "",
+      GIF_LIMIT: GIF_LIMIT,
     };
   },
   computed: {
@@ -124,15 +124,12 @@ export default {
         !form ||
         (form.find('.js-vue-markdown-field').length && $(this.$el).closest('form')[0] === form[0])
       );
-    },
-    displayModal() {
-      this.modalVisable = true;
     }, 
     /*closeModal() {
       this.modalVisable = false;
     },*/
     fetchData() {
-      const url = new URL(apiUrl);
+      const url = new URL(`${apiUrl}gifs/trending`);
       const params = new URLSearchParams( {
                           q:'programmer', 
                           api_key: apiKey, 
@@ -140,22 +137,47 @@ export default {
                           limit: GIF_LIMIT,
                           } );
       var currentCapSize = 25;
+      var iter = 0;
+      const ev = document.addEventListener("click", ev => {
+        ev.preventDefault();
 
       fetch(url)
         .then(response => response.json())
         .then(content => {
-          for (const item of content.data) {
-              this.gifs.push(item);
+          /*for (const item of content.data) {
+              document.addEventListener("DOMContentLoaded", fetchData);
+              img = document.createElement("img");
+              this.gifs.push(content.data[iter]);
+              iter++;
+            }*/
+            console.log(content.data);
+            console.log("META", content.meta);
+            for (let i = GIF_LIMIT - 25; i < GIF_LIMIT; i++) {
+              gifs.push(response.content.data[i]);
             }
-
+            
+            if (gifs.length === 0) {
+              gifs.push("Content empty");
+            }
+            this.GIF_LIMIT += 25;
+            console.log()
             console.log(this.gifs);
         })
+        .catch(
+          err => {
+            console.err(err);
+          });
+      });
       
       this.modalVisable = true;
       url.search = params.toString();
 
       console.log("This next line");
       console.log(url);
+    },
+    displayModal() {
+      this.modalVisable = true;
+      document.addEventListener("click", fetchData);
     },
     previewMarkdownTab(event, form) {
       if (event.target.blur) event.target.blur();
@@ -348,8 +370,6 @@ export default {
                   </div>
                 </div>
               </template>
-              {{ gifs }}
-
           </gl-modal>
           <toolbar-button
             :prepend="true"
