@@ -1,5 +1,6 @@
 <script>
-import { GlPopover, GlButton, GlTooltipDirective, GlTabs, GlTab, GlModal, GlModalDirective } from '@gitlab/ui';
+import { GlPopover, GlButton, GlTooltipDirective, GlTabs, GlTab, GlModal, 
+          GlModalDirective, GlInfiniteScroll, GlSearchBoxByType } from '@gitlab/ui';
 import $ from 'jquery';
 import { keysFor, BOLD_TEXT, ITALIC_TEXT, LINK_TEXT } from '~/behaviors/shortcuts/keybindings';
 import { getSelectedFragment } from '~/lib/utils/common_utils';
@@ -7,17 +8,23 @@ import { s__, __ } from '~/locale';
 import { CopyAsGFM } from '../../../behaviors/markdown/copy_as_gfm';
 import ToolbarButton from './toolbar_button.vue';
 import { apiUrl, apiToken as apiKey } from "../../../../giphy.config.json";
+import SearchBox from './SearchBox.vue';
+import { debounce } from "lodash";
 
 const GIF_LIMIT = 25;
+const MAX_GIFS = 4999;
 
 export default {
   components: {
     ToolbarButton,
+    GlInfiniteScroll,
+    GlSearchBoxByType,
     GlPopover,
     GlButton,
     GlTabs,
     GlTab,
     GlModal,
+    SearchBox,
   },
   directives: {
     GlTooltip: GlTooltipDirective,
@@ -53,10 +60,12 @@ export default {
     return {
       tag: '> ',
       suggestPopoverVisible: false,
-      modalVisable: false,
-      offset: 25,
+      modalVisible: false,
+      offset: 0,
       gifs: [],
-      GIF_LIMIT: GIF_LIMIT,
+      searchedGifs: [],
+      searchTerm: "",
+      gifMax: MAX_GIFS,
     };
   },
   computed: {
@@ -86,17 +95,35 @@ export default {
     modifierKey() {
       return this.isMac ? '⌘' : s__('KeyboardKey|Ctrl+');
     },
+    gifList: function() {
+      // Should keep track of everytime the list
+      // increases in size and displays accordingly
+      return this.gifs.slice(0, this.offset);
+    },
   },
   watch: {
     showSuggestPopover() {
       this.updateSuggestPopoverVisibility();
     },
+    searchTerm(newSearch, oldSearch) {
+      console.log("Value of oldSearch->", oldSearch);
+      console.log("Value of newSearch-> ", newSearch);
+      if (newSearch.length > 0) {
+        console.log("searching matching gifs...");
+        this.searchGifs();
+      }
+      else {
+        console.log("resetingGifs");
+        this.resetGIFsArray();
+        this.fetchData();
+      }
+    }
   },
   mounted() {
     $(document).on('markdown-preview:show.vue', this.previewMarkdownTab);
     $(document).on('markdown-preview:hide.vue', this.writeMarkdownTab);
-    this.searchGifs();
     this.updateSuggestPopoverVisibility();
+    this.debouncedSearch = debounce(this.searchGifs, 250);
   },
   beforeDestroy() {
     $(document).off('markdown-preview:show.vue', this.previewMarkdownTab);
@@ -109,15 +136,25 @@ export default {
       this.suggestPopoverVisible = this.showSuggestPopover && this.canSuggest;
     },
     async searchGifs() {
-      const url = new URL(`${apiUrl}gifs/trending`);
-      const params = new URLSearchParams( {q: 'programmer', api_key: apiKey });
+      const url = new URL(`${apiUrl}gifs/search?&q=${this.searchTerm}&limit=100`);
+      const params = new URLSearchParams({
+                    q: "programmer",
+                    api_key: apiKey,
+                    limit: gifMax,
+      });
+
       url.search = params.toString();
-      console.log('here');
-      console.log(url);
-      // this.url = url;
-      /*const response = await window.fetch(url);
-      const asJSON = await respons.json();
-      console.log(asJSON); */
+
+      const response = await window.fetch(url);
+      const asJSON = await response.json()
+        .then(content => {
+          this.gifs = content.data;
+        });
+
+      console.log(asJSON);
+    },
+    resetGIFsArray(){
+      this.gifs = [];
     },
     isValid(form) {
       return (
@@ -125,59 +162,37 @@ export default {
         (form.find('.js-vue-markdown-field').length && $(this.$el).closest('form')[0] === form[0])
       );
     }, 
-    /*closeModal() {
-      this.modalVisable = false;
-    },*/
     fetchData() {
+      console.log("Fectching API data...");
       const url = new URL(`${apiUrl}gifs/trending`);
       const params = new URLSearchParams( {
                           q:'programmer', 
                           api_key: apiKey, 
                           offset: this.offset,
-                          limit: GIF_LIMIT,
+                          // Limits amount of gifs in modal
+                          limit: this.gifMax,
                           } );
-      var currentCapSize = 25;
-      var iter = 0;
-      const ev = document.addEventListener("click", ev => {
-        ev.preventDefault();
+      url.search = params.toString();
 
       fetch(url)
         .then(response => response.json())
         .then(content => {
-          /*for (const item of content.data) {
-              document.addEventListener("DOMContentLoaded", fetchData);
-              img = document.createElement("img");
-              this.gifs.push(content.data[iter]);
-              iter++;
-            }*/
             console.log(content.data);
             console.log("META", content.meta);
-            for (let i = GIF_LIMIT - 25; i < GIF_LIMIT; i++) {
-              gifs.push(response.content.data[i]);
-            }
-            
-            if (gifs.length === 0) {
-              gifs.push("Content empty");
-            }
-            this.GIF_LIMIT += 25;
-            console.log()
-            console.log(this.gifs);
-        })
-        .catch(
-          err => {
-            console.err(err);
-          });
-      });
-      
-      this.modalVisable = true;
-      url.search = params.toString();
+            this.gifs = this.gifs.concat(content.data);
 
+            // Move to next page for whenever we call fetchData next
+            this.fetchMore();
+        })
+        .catch(err => {
+          console.error(err);
+        });
+      
       console.log("This next line");
       console.log(url);
     },
     displayModal() {
-      this.modalVisable = true;
-      document.addEventListener("click", fetchData);
+      this.modalVisible = true;
     },
     previewMarkdownTab(event, form) {
       if (event.target.blur) event.target.blur();
@@ -213,7 +228,14 @@ export default {
         })
         .catch(() => {});
     },
-    
+    onModalShown() {
+      if (!this.gifs.length) {
+        this.fetchData();
+      }
+    },
+    fetchMore() {
+      this.offset += 25;
+    }    
   },
   shortcuts: {
     bold: keysFor(BOLD_TEXT),
@@ -351,32 +373,38 @@ export default {
           />
           <gl-modal title="Find and Insert GIF" 
             modal-id="giphy-modal" 
-            v-model="modalVisable"
-            @click="fetchData()"
+            v-model="modalVisible"
+            @shown="onModalShown"
             >
-              <template #items>
-                <div 
-                style="display: flex; flex-wrap: wrap"
-                >
-                  <div 
-                  v-for="(gif) in gifs" 
-                  :key="gif.id" 
-                  class="gl-giphy-item"
+            <gl-search-box-by-type 
+                  v-model.trim="searchTerm"
                   >
-                    <img 
-                    :src="gif.images.downsized_medium.url" 
-                    :alt="gif.title" 
-                    />
-                  </div>
+            </gl-search-box-by-type>
+            <gl-infinite-scroll
+           :total-items="gifMax"
+           :fetched-items="offset"
+           @bottomReached="fetchData">
+              <div 
+              style="display: flex; flex-wrap: wrap"
+              >
+                <div 
+                v-for="gif in gifList" 
+                :key="gif.id" 
+                class="gl-giphy-item"
+                > 
+                  <img 
+                  :src="gif.images.downsized_medium.url" 
+                  :alt="gif.title" 
+                  />
                 </div>
-              </template>
+              </div>
+            </gl-infinite-scroll>
           </gl-modal>
           <toolbar-button
             :prepend="true"
             tag=""
             :button-title="__('Find and insert GIF')"
             icon="doc-image"
-            v-model="modalVisable"
             @click="displayModal()"
            />
           <toolbar-button
@@ -399,7 +427,7 @@ export default {
     height: 14rem;
     padding: 0.5rem;
     border: 1px solid transparent;
-    curson: pointer;
+    cursor: pointer;
   }
 
   .gl-giphy-item:hover {

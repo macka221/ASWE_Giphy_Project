@@ -1,0 +1,154 @@
+From 257c4b78cf9d8c64f94663a91ad0cc52a273564c Mon Sep 17 00:00:00 2001
+From: Paul Slaughter <pslaughter@gitlab.com>
+Date: Tue, 12 Apr 2022 05:59:45 -0500
+Subject: [PATCH] Fix gifs not loading
+
+---
+ src/vue_shared/components/markdown/header.vue | 81 +++++++------------
+ 1 file changed, 30 insertions(+), 51 deletions(-)
+
+diff --git a/src/vue_shared/components/markdown/header.vue b/src/vue_shared/components/markdown/header.vue
+index dcc7e9a..7be8179 100644
+--- a/src/vue_shared/components/markdown/header.vue
++++ b/src/vue_shared/components/markdown/header.vue
+@@ -53,10 +53,9 @@ export default {
+     return {
+       tag: '> ',
+       suggestPopoverVisible: false,
+-      modalVisable: false,
++      modalVisible: false,
+       offset: 25,
+       gifs: [],
+-      GIF_LIMIT: GIF_LIMIT,
+     };
+   },
+   computed: {
+@@ -129,55 +128,34 @@ export default {
+       this.modalVisable = false;
+     },*/
+     fetchData() {
+-      const url = new URL(`${apiUrl}gifs/trending`);
++      const url = new URL(`${apiUrl}gifs/search`);
+       const params = new URLSearchParams( {
+-                          q:'programmer', 
++                          q:'panda', 
+                           api_key: apiKey, 
+                           offset: this.offset,
+                           limit: GIF_LIMIT,
+                           } );
+-      var currentCapSize = 25;
+-      var iter = 0;
+-      const ev = document.addEventListener("click", ev => {
+-        ev.preventDefault();
++      url.search = params.toString();
+ 
+       fetch(url)
+         .then(response => response.json())
+         .then(content => {
+-          /*for (const item of content.data) {
+-              document.addEventListener("DOMContentLoaded", fetchData);
+-              img = document.createElement("img");
+-              this.gifs.push(content.data[iter]);
+-              iter++;
+-            }*/
+             console.log(content.data);
+             console.log("META", content.meta);
+-            for (let i = GIF_LIMIT - 25; i < GIF_LIMIT; i++) {
+-              gifs.push(response.content.data[i]);
+-            }
+-            
+-            if (gifs.length === 0) {
+-              gifs.push("Content empty");
+-            }
+-            this.GIF_LIMIT += 25;
+-            console.log()
+-            console.log(this.gifs);
++            this.gifs = this.gifs.concat(content.data);
++
++            // Move to next page for whenever we call fetchData next
++            this.offset += GIF_LIMIT;
+         })
+-        .catch(
+-          err => {
+-            console.err(err);
+-          });
+-      });
++        .catch(err => {
++          console.error(err);
++        });
+       
+-      this.modalVisable = true;
+-      url.search = params.toString();
+-
+       console.log("This next line");
+       console.log(url);
+     },
+     displayModal() {
+-      this.modalVisable = true;
+-      document.addEventListener("click", fetchData);
++      this.modalVisible = true;
+     },
+     previewMarkdownTab(event, form) {
+       if (event.target.blur) event.target.blur();
+@@ -213,7 +191,11 @@ export default {
+         })
+         .catch(() => {});
+     },
+-    
++    onModalShown() {
++      if (!this.gifs.length) {
++        this.fetchData();
++      }
++    },   
+   },
+   shortcuts: {
+     bold: keysFor(BOLD_TEXT),
+@@ -351,32 +333,29 @@ export default {
+           />
+           <gl-modal title="Find and Insert GIF" 
+             modal-id="giphy-modal" 
+-            v-model="modalVisable"
+-            @click="fetchData()"
++            v-model="modalVisible"
++            @shown="onModalShown"
+             >
+-              <template #items>
++              <div 
++              style="display: flex; flex-wrap: wrap"
++              >
+                 <div 
+-                style="display: flex; flex-wrap: wrap"
++                v-for="(gif) in gifs" 
++                :key="gif.id" 
++                class="gl-giphy-item"
+                 >
+-                  <div 
+-                  v-for="(gif) in gifs" 
+-                  :key="gif.id" 
+-                  class="gl-giphy-item"
+-                  >
+-                    <img 
+-                    :src="gif.images.downsized_medium.url" 
+-                    :alt="gif.title" 
+-                    />
+-                  </div>
++                  <img 
++                  :src="gif.images.downsized_medium.url" 
++                  :alt="gif.title" 
++                  />
+                 </div>
+-              </template>
++              </div>
+           </gl-modal>
+           <toolbar-button
+             :prepend="true"
+             tag=""
+             :button-title="__('Find and insert GIF')"
+             icon="doc-image"
+-            v-model="modalVisable"
+             @click="displayModal()"
+            />
+           <toolbar-button
+-- 
+2.25.1
+
